@@ -1,0 +1,70 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: iot_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - iot_network
+
+  mongodb:
+    image: mongo:7.0
+    container_name: iot_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: iot_stroke_db
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - iot_network
+
+  backend_fastapi:
+    build:
+      context: ./backend_fastapi
+      dockerfile: Dockerfile
+    container_name: iot_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=iot_stroke_db
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - AI_SERVICE_URL=http://ai_service_fastapi:8001
+      - APP_PORT=8000
+    depends_on:
+      - mosquitto
+      - mongodb
+    networks:
+      - iot_network
+
+  ai_service_fastapi:
+    build:
+      context: ./ai_service_fastapi
+      dockerfile: Dockerfile
+    container_name: iot_ai_service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=iot_stroke_db
+      - APP_PORT=8001
+    depends_on:
+      - mongodb
+    networks:
+      - iot_network
+
+networks:
+  iot_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
