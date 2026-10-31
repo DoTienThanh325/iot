@@ -25,5 +25,10 @@ venv/
 /ai_service_fastapi/datasets/sample/waveforms/
 /ai_service_fastapi/datasets/raw/
 
+# AI service tests, examples, and training tools
+/ai_service_fastapi/tests/
+/ai_service_fastapi/examples/
+/ai_service_fastapi/training/
+
 # Logs
 *.log
