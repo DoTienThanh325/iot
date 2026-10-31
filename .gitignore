@@ -20,8 +20,10 @@ venv/
 .env.*
 !.env.example
 
-# Generated models, datasets, and logs
-artifacts/
-datasets/sample/waveforms/
-datasets/raw/
+# Generated AI models and datasets
+/ai_service_fastapi/artifacts/
+/ai_service_fastapi/datasets/sample/waveforms/
+/ai_service_fastapi/datasets/raw/
+
+# Logs
 *.log
