@@ -1,0 +1,33 @@
+{
+  "schema_version": "2.0",
+  "device_id": "demo-device",
+  "session_id": "demo-session",
+  "window_id": "window-001",
+  "start_time": "2026-01-01T00:00:00Z",
+  "end_time": "2026-01-01T00:00:20Z",
+  "vitals": {
+    "spo2": [
+      {"timestamp": "2026-01-01T00:00:00Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:01Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:02Z", "value": 90},
+      {"timestamp": "2026-01-01T00:00:03Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:04Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:05Z", "value": 90},
+      {"timestamp": "2026-01-01T00:00:06Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:07Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:08Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:09Z", "value": 90},
+      {"timestamp": "2026-01-01T00:00:10Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:11Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:12Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:13Z", "value": 90},
+      {"timestamp": "2026-01-01T00:00:14Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:15Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:16Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:17Z", "value": 90},
+      {"timestamp": "2026-01-01T00:00:18Z", "value": 89},
+      {"timestamp": "2026-01-01T00:00:19Z", "value": 89}
+    ],
+    "bpm": []
+  }
+}

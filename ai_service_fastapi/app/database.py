@@ -13,15 +13,22 @@ class Database:
 
 db = Database()
 
-async def connect_to_mongo():
-    logger.info(f"AI Service connecting to MongoDB at {MONGO_URI}...")
-    db.client = AsyncIOMotorClient(MONGO_URI)
-    db.db = db.client[MONGO_DB]
-    logger.info("AI Service connected to MongoDB.")
+async def connect_to_mongo(config=None):
+    uri = config.mongo_uri if config else MONGO_URI
+    name = config.mongo_db if config else MONGO_DB
+    timeout = config.mongo_timeout_ms if config else 3000
+    logger.info("Creating MongoDB client (credentials omitted).")
+    db.client = AsyncIOMotorClient(
+        uri, serverSelectionTimeoutMS=timeout, connectTimeoutMS=timeout,
+        socketTimeoutMS=timeout, tz_aware=True,
+    )
+    db.db = db.client[name]
 
 async def close_mongo_connection():
     if db.client:
         db.client.close()
+    db.client = None
+    db.db = None
 
 async def save_ai_result(result_doc: dict):
     if db.db is not None:
@@ -30,5 +37,5 @@ async def save_ai_result(result_doc: dict):
             result_doc["_id"] = str(res.inserted_id)
             return result_doc
         except Exception as e:
-            logger.error(f"Failed to save AI result to MongoDB: {e}")
+            logger.error("Failed to save legacy AI result (%s)", type(e).__name__)
     return result_doc

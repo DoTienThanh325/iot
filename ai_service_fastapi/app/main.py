@@ -1,8 +1,11 @@
 import logging
-from datetime import datetime
+import asyncio
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.database import connect_to_mongo, close_mongo_connection, save_ai_result
@@ -10,6 +13,12 @@ from app.modules.context_aware import evaluate_context
 from app.modules.fall_detect import evaluate_fall
 from app.modules.ecg_analysis import extract_hrv_features
 from app.modules.afib_detect import afib_detector
+from app.config import Settings
+from app.database import db
+from app.algorithms.v2.afib import AFibPredictor
+from app.api.v2 import router as v2_router
+from app.api.body_limit import BodyLimitMiddleware
+from app.services.state_store import MemoryStore, MongoStore
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,17 +35,42 @@ class AnalyzePayload(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await connect_to_mongo()
-    logger.info("AI Service lifespan initialized.")
-    yield
-    await close_mongo_connection()
-    logger.info("AI Service lifespan shutdown.")
+    config = Settings.from_env()
+    try:
+        await connect_to_mongo(config)
+        predictor = AFibPredictor(config)
+        predictor.load()
+        store = MemoryStore(config) if config.storage_mode == "memory" else MongoStore(
+            db.client, db.db, config.mongo_timeout_ms)
+        try:
+            await store.initialize()
+        except Exception as exc:
+            logger.warning("V2 storage initialization failed (%s)", type(exc).__name__)
+        app.state.runtime = {"config": config, "predictor": predictor, "store": store,
+                             "semaphore": asyncio.Semaphore(config.max_concurrency)}
+        if config.storage_mode == "memory":
+            logger.warning("V2 memory demo mode: use one worker; no crash durability.")
+        logger.info("AI Service lifespan initialized.")
+        yield
+    finally:
+        await close_mongo_connection()
+        logger.info("AI Service lifespan shutdown.")
 
 app = FastAPI(
     title="AI Stroke Risk & Signal Processing Service",
     version="1.0.0",
     lifespan=lifespan
 )
+app.include_router(v2_router)
+app.add_middleware(BodyLimitMiddleware)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request, exc):
+    # Do not echo NaN/Inf, raw sensor arrays, or non-serializable validator contexts.
+    errors = [{key: error[key] for key in ("loc", "msg", "type")}
+              for error in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 @app.get("/health")
 async def health_check():
@@ -49,8 +83,11 @@ async def health_check():
 @app.post("/api/v1/analyze")
 async def analyze_sensor_window(payload: AnalyzePayload):
     device_id = payload.device_id
-    ts_val = payload.timestamp or datetime.utcnow().timestamp()
-    dt = datetime.utcfromtimestamp(ts_val)
+    ts_val = payload.timestamp if payload.timestamp is not None else datetime.now(timezone.utc).timestamp()
+    try:
+        dt = datetime.fromtimestamp(ts_val, tz=timezone.utc)
+    except (ValueError, OverflowError, OSError):
+        raise HTTPException(422, "Invalid timestamp") from None
 
     vitals = payload.vitals or {}
     accel = payload.accel or {}
