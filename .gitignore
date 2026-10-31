@@ -22,8 +22,7 @@ venv/
 
 # Generated AI models and datasets
 /ai_service_fastapi/artifacts/
-/ai_service_fastapi/datasets/sample/waveforms/
-/ai_service_fastapi/datasets/raw/
+/ai_service_fastapi/datasets/
 
 # AI service tests, examples, and training tools
 /ai_service_fastapi/tests/
